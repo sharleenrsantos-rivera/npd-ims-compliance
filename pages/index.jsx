@@ -622,11 +622,20 @@ function exportCSV(result) {
   a.download = `IMS_Report_${(result.productName||"Untitled").replace(/\s+/g,"_")}.csv`;
   a.click();
 }
-function exportDoc(result, html) {
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(new Blob([html],{type:"application/msword"}));
-  a.download = `IMS_Report_${(result.productName||"Untitled").replace(/\s+/g,"_")}.doc`;
-  a.click();
+async function exportDocx(result, stage, onError) {
+  // Lazy-load — the docx package is large; only fetch when the user clicks.
+  try {
+    const { buildDocxBlob } = await import("../lib/buildDocx");
+    const blob = await buildDocxBlob(result, stage);
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `IMS_Report_${(result.productName||"Untitled").replace(/\s+/g,"_")}.docx`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  } catch (e) {
+    console.error("DOCX export failed:", e);
+    onError?.(`Couldn't generate Word document: ${e.message}`);
+  }
 }
 
 /* ── Collapsible ─────────────────────────────────────────────────────────── */
@@ -1060,7 +1069,7 @@ export default function App() {
                   {[
                     {l:"PDF", i:"📄", fn:()=>exportPDF(htmlReport)},
                     {l:"CSV", i:"📊", fn:()=>exportCSV(result)},
-                    {l:"DOC", i:"📝", fn:()=>exportDoc(result,htmlReport)},
+                    {l:"DOCX", i:"📝", fn:()=>exportDocx(result,stage,setError)},
                   ].map(({l,i,fn})=>(
                     <button key={l} className="exp-btn" onClick={fn} style={{padding:"5px 12px",borderRadius:6,border:`1px solid ${C.navyL}`,background:C.navyM,color:C.slateXL,cursor:"pointer",fontSize:9.5,fontFamily:"'IBM Plex Mono',monospace",fontWeight:700,display:"flex",alignItems:"center",gap:4,transition:"background 0.12s"}}>
                       {i} {l}

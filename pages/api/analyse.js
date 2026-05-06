@@ -1,5 +1,5 @@
 /**
- * STS NPD Compliance Engine — Serverless API Route
+ * NPD Compliance Engine — Serverless API Route
  * Runs on Vercel Edge-compatible Node runtime.
  * API key is server-side only — never exposed to client.
  * No data is stored, logged, or retained beyond this request.
@@ -47,7 +47,7 @@ export default async function handler(req, res) {
     ? "\n\n--- UPLOADED DOCUMENTS ---\n" + fileContents.map(f => `[${f.name}]\n${f.content}`).join("\n---\n")
     : "";
 
-  const systemPrompt = `You are the Sea to Summit NPD IMS Compliance Engine — a global expert in product safety, chemical compliance (REACH/RoHS/PFAS/Prop 65), packaging regulations (EPR/plastic taxes/labelling/recycled content), textiles, ISO standards (14001:2026, 9001:2015, 45001:2018), and sustainability (CSRD/ESPR/greenwashing). You have web_search — USE IT to retrieve current regulatory data before responding. Return ONLY valid raw JSON, no markdown fences, no preamble, no commentary.`;
+  const systemPrompt = `You are an NPD IMS Compliance Engine — a global expert in product safety, chemical compliance (REACH/RoHS/PFAS/Prop 65), packaging regulations (EPR/plastic taxes/labelling/recycled content), textiles, ISO standards (14001:2026, 9001:2015, 45001:2018), and sustainability (CSRD/ESPR/greenwashing). You have web_search — USE IT to retrieve current regulatory data before responding. Return ONLY valid raw JSON, no markdown fences, no preamble, no commentary.`;
 
   const briefPrompt = `Stage 1 NPD IMS Compliance Pre-Screen. Search the web for current regulations for "${catLabel}" and recent packaging EPR/plastic levy updates before responding.
 

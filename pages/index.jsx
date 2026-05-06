@@ -100,6 +100,10 @@ const stLbl   = s => ({pass:"PASS",compliant:"COMPLIANT",review:"REVIEW",action_
 
 const today = new Date().toLocaleDateString("en-GB",{day:"2-digit",month:"long",year:"numeric"});
 
+/* ── HTML escape (used for every API/user value interpolated into the report) ── */
+const ESC_MAP = {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"};
+const esc = v => String(v == null ? "" : v).replace(/[&<>"']/g, c => ESC_MAP[c]);
+
 /* ── HTML report builder ─────────────────────────────────────────────────── */
 function buildHTMLReport(result, stage) {
   const isBrief = stage === "brief";
@@ -114,49 +118,49 @@ function buildHTMLReport(result, stage) {
   const thS   = (bg=C.navy) => `background:${bg};padding:8px 10px;text-align:left;font-family:'IBM Plex Mono',monospace;font-size:8px;color:#94A3B8;letter-spacing:1px;font-weight:700;white-space:nowrap;overflow:hidden`;
   const tdS   = `padding:8px 10px;vertical-align:top;line-height:1.5;word-wrap:break-word;overflow-wrap:break-word`;
   const secH  = (txt,color=C.FR,sub="") =>
-    `<div style="border-top:2px solid ${color};padding-top:8px;margin:24px 0 12px"><span style="font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:700;color:${color};letter-spacing:2px;text-transform:uppercase">${txt}</span>${sub?`<span style="font-size:9px;color:#94A3B8;margin-left:8px">${sub}</span>`:""}</div>`;
+    `<div style="border-top:2px solid ${color};padding-top:8px;margin:24px 0 12px"><span style="font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:700;color:${color};letter-spacing:2px;text-transform:uppercase">${esc(txt)}</span>${sub?`<span style="font-size:9px;color:#94A3B8;margin-left:8px">${esc(sub)}</span>`:""}</div>`;
 
   /* ── fw tag ── */
-  const fwTag = fw => `<span style="font-family:'IBM Plex Mono',monospace;font-size:7px;font-weight:700;color:${fwCol(fw)};border:1px solid ${fwCol(fw)}30;border-radius:3px;padding:1px 5px;margin-right:3px">${fw}</span>`;
-  const sevBadge = s => `<span style="font-family:'IBM Plex Mono',monospace;font-size:8.5px;font-weight:700;padding:2px 7px;border-radius:3px;background:${sevBg(s)};color:${sevCol(s)}">${(s||"").toUpperCase()}</span>`;
-  const statusBadge = s => `<span style="font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:700;padding:2px 6px;border-radius:3px;background:${stCol(s)}18;color:${stCol(s)}">${stLbl(s)}</span>`;
+  const fwTag = fw => `<span style="font-family:'IBM Plex Mono',monospace;font-size:7px;font-weight:700;color:${fwCol(fw)};border:1px solid ${fwCol(fw)}30;border-radius:3px;padding:1px 5px;margin-right:3px">${esc(fw)}</span>`;
+  const sevBadge = s => `<span style="font-family:'IBM Plex Mono',monospace;font-size:8.5px;font-weight:700;padding:2px 7px;border-radius:3px;background:${sevBg(s)};color:${sevCol(s)}">${esc((s||"").toUpperCase())}</span>`;
+  const statusBadge = s => `<span style="font-family:'IBM Plex Mono',monospace;font-size:8px;font-weight:700;padding:2px 6px;border-radius:3px;background:${stCol(s)}18;color:${stCol(s)}">${esc(stLbl(s))}</span>`;
 
   /* ── Dashboard panel ── */
   const dashPanel = (label, data, borderCol) => {
     if (!data) return "";
     const lc = riskCol(data.level);
     return `<div style="border-left:3px solid ${borderCol};padding:10px 12px;background:#FAF8F4;flex:1;min-width:0;overflow:hidden">
-      <div style="font-family:'IBM Plex Mono',monospace;font-size:7px;color:${borderCol};letter-spacing:1.5px;font-weight:700;margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${label}</div>
-      <div style="font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:700;color:${lc};line-height:1;margin-bottom:4px">${(data.level||"").toUpperCase()}</div>
-      <div style="font-size:9.5px;color:#6B7280;line-height:1.4;word-wrap:break-word">${data.label||""}</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:7px;color:${borderCol};letter-spacing:1.5px;font-weight:700;margin-bottom:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(label)}</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:700;color:${lc};line-height:1;margin-bottom:4px">${esc((data.level||"").toUpperCase())}</div>
+      <div style="font-size:9.5px;color:#6B7280;line-height:1.4;word-wrap:break-word">${esc(data.label)}</div>
     </div>`;
   };
 
   /* ── IMS Findings register row ── */
   const findingRow = (f,i) => `<tr style="background:${i%2===0?"#fff":"#F9FAFB"}">
-    <td style="${tdS};font-weight:600;color:#1F2A44;font-size:10.5px;width:22%">${f.finding||""}</td>
+    <td style="${tdS};font-weight:600;color:#1F2A44;font-size:10.5px;width:22%">${esc(f.finding)}</td>
     <td style="${tdS};width:9%">${sevBadge(f.severity)}</td>
-    <td style="${tdS};width:7%">${f.framework?`<span style="font-family:'IBM Plex Mono',monospace;font-size:8.5px;font-weight:700;color:${fwCol(f.framework)}">${f.framework}</span>`:""}</td>
-    <td style="${tdS};font-family:'IBM Plex Mono',monospace;font-size:8.5px;color:#6B7280;width:12%">${f.clause_ref||""}</td>
-    <td style="${tdS};font-size:10px;color:#6B7280;width:12%">${f.scope||""}</td>
-    <td style="${tdS};font-size:10.5px;width:38%">${f.action_required||""}</td>
+    <td style="${tdS};width:7%">${f.framework?`<span style="font-family:'IBM Plex Mono',monospace;font-size:8.5px;font-weight:700;color:${fwCol(f.framework)}">${esc(f.framework)}</span>`:""}</td>
+    <td style="${tdS};font-family:'IBM Plex Mono',monospace;font-size:8.5px;color:#6B7280;width:12%">${esc(f.clause_ref)}</td>
+    <td style="${tdS};font-size:10px;color:#6B7280;width:12%">${esc(f.scope)}</td>
+    <td style="${tdS};font-size:10.5px;width:38%">${esc(f.action_required)}</td>
   </tr>`;
 
   /* ── Flag card ── */
   const flagCard = (f, accentColor=C.FR) => {
-    const sc = sevCol(f.severity), sbg = sevBg(f.severity);
+    const sc = sevCol(f.severity);
     const fws = (f.fws||[]).length ? f.fws : ["REG"];
     return `<div style="border:1px solid #E2E8F0;border-left:3px solid ${sc};border-radius:6px;margin-bottom:10px;overflow:hidden">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px 8px">
-        <span style="font-weight:700;font-size:11px;color:#1F2A44">${f.flag||f.title||""}</span>
+        <span style="font-weight:700;font-size:11px;color:#1F2A44">${esc(f.flag||f.title||"")}</span>
         ${sevBadge(f.severity)}
       </div>
       <div style="background:#1A2438;padding:4px 12px;display:flex;gap:6px">${fws.map(fwTag).join("")}</div>
-      ${f.regulation?`<div style="padding:5px 12px 0;font-family:'IBM Plex Mono',monospace;font-size:8px;color:#94A3B8">${f.regulation}</div>`:""}
-      ${f.markets?.length?`<div style="padding:3px 12px 0;font-size:10px;color:#6B7280">Markets: ${f.markets.join(", ")}</div>`:""}
-      <div style="padding:8px 12px;font-size:11px;color:#374151;line-height:1.6">${f.detail||""}</div>
-      ${f.action?`<div style="padding:0 12px 10px;font-size:10.5px;font-weight:700;color:${C.FR}">→ ${f.action}</div>`:""}
-      ${f.alternative?`<div style="padding:0 12px 10px;font-size:10px;color:#059669;font-weight:600">💡 Alternative: ${f.alternative}</div>`:""}
+      ${f.regulation?`<div style="padding:5px 12px 0;font-family:'IBM Plex Mono',monospace;font-size:8px;color:#94A3B8">${esc(f.regulation)}</div>`:""}
+      ${f.markets?.length?`<div style="padding:3px 12px 0;font-size:10px;color:#6B7280">Markets: ${esc(f.markets.join(", "))}</div>`:""}
+      <div style="padding:8px 12px;font-size:11px;color:#374151;line-height:1.6">${esc(f.detail)}</div>
+      ${f.action?`<div style="padding:0 12px 10px;font-size:10.5px;font-weight:700;color:${C.FR}">→ ${esc(f.action)}</div>`:""}
+      ${f.alternative?`<div style="padding:0 12px 10px;font-size:10px;color:#059669;font-weight:600">💡 Alternative: ${esc(f.alternative)}</div>`:""}
     </div>`;
   };
 
@@ -170,7 +174,7 @@ function buildHTMLReport(result, stage) {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>STS NPD IMS Compliance Report — ${result.productName||"Product"}</title>
+<title>STS NPD IMS Compliance Report — ${esc(result.productName||"Product")}</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700;800&family=IBM+Plex+Mono:wght@400;600;700&display=swap');
 *{box-sizing:border-box;margin:0;padding:0}
@@ -194,8 +198,8 @@ td,th{border-bottom:1px solid #F1F5F9}
   <img src="${LOGO_BLACK}" alt="Sea to Summit" style="height:24px;width:auto;display:block;margin:0 auto 28px">
   <div style="border-top:1px solid #E2E8F0;padding-top:18px;margin-bottom:14px"></div>
   <div style="font-family:'IBM Plex Mono',monospace;font-size:8px;color:${C.FR};letter-spacing:2px;margin-bottom:10px">NPD IMS Pre-Assessment Screening Report</div>
-  <div style="font-size:30px;font-weight:800;color:${C.navy};line-height:1.15;margin-bottom:6px">${result.productName||"Product"}</div>
-  <div style="font-size:13px;color:#6B7A99;margin-bottom:24px">${result.category||""} · ${result.stage||""}</div>
+  <div style="font-size:30px;font-weight:800;color:${C.navy};line-height:1.15;margin-bottom:6px">${esc(result.productName||"Product")}</div>
+  <div style="font-size:13px;color:#6B7A99;margin-bottom:24px">${esc(result.category||"")} · ${esc(result.stage||"")}</div>
 
   <!-- 4 framework badges -->
   <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid #E2E8F0;margin-bottom:24px">
@@ -216,13 +220,13 @@ td,th{border-bottom:1px solid #F1F5F9}
       ["OVERALL RISK",(result.overall_risk||"").toUpperCase(),riskCol(result.overall_risk)],
       ["TARGET MARKETS",Object.keys(result.market_readiness||{}).join(" · ")||"",C.navy],
       ["DATE PREPARED",today,C.navy],
-    ].map(([l,v,vc])=>`<div style="padding:0 0 12px"><div style="font-family:'IBM Plex Mono',monospace;font-size:7px;color:#94A3B8;letter-spacing:1.5px;margin-bottom:4px">${l}</div><div style="font-size:10.5px;font-weight:700;color:${vc}">${v}</div></div>`).join("")}
+    ].map(([l,v,vc])=>`<div style="padding:0 0 12px"><div style="font-family:'IBM Plex Mono',monospace;font-size:7px;color:#94A3B8;letter-spacing:1.5px;margin-bottom:4px">${esc(l)}</div><div style="font-size:10.5px;font-weight:700;color:${vc}">${esc(v)}</div></div>`).join("")}
     ${[
       ["PREPARED BY","STS NPD IMS Compliance Engine",C.navy],
       ["PRODUCT CATEGORY",result.category||"",C.navy],
       ["REVISION","Draft 1.0",C.navy],
       ["CLASSIFICATION","CONFIDENTIAL",C.FR],
-    ].map(([l,v,vc])=>`<div style="padding:12px 0 0;border-top:1px solid #F5F0E8"><div style="font-family:'IBM Plex Mono',monospace;font-size:7px;color:#94A3B8;letter-spacing:1.5px;margin-bottom:4px">${l}</div><div style="font-size:10.5px;font-weight:700;color:${vc}">${v}</div></div>`).join("")}
+    ].map(([l,v,vc])=>`<div style="padding:12px 0 0;border-top:1px solid #F5F0E8"><div style="font-family:'IBM Plex Mono',monospace;font-size:7px;color:#94A3B8;letter-spacing:1.5px;margin-bottom:4px">${esc(l)}</div><div style="font-size:10.5px;font-weight:700;color:${vc}">${esc(v)}</div></div>`).join("")}
   </div>
 </div>
 
@@ -232,7 +236,7 @@ td,th{border-bottom:1px solid #F1F5F9}
 <!-- EXECUTIVE SUMMARY -->
 <section>
 ${secH("Executive Summary",C.FR)}
-<p style="font-size:13px;line-height:1.8;color:#374151">${result.executive_summary||""}</p>
+<p style="font-size:13px;line-height:1.8;color:#374151">${esc(result.executive_summary||"")}</p>
 </section>
 
 <!-- IMS DASHBOARD -->
@@ -276,11 +280,11 @@ ${secH("Recommendation",C.FR)}
   <span style="font-size:24px">${gngI}</span>
   <div>
     <div style="font-family:'IBM Plex Mono',monospace;font-size:7.5px;color:#6B7A99;letter-spacing:1.5px;margin-bottom:2px">GO / NO-GO RECOMMENDATION</div>
-    <div style="font-size:20px;font-weight:800;color:${gngC}">${gng.recommendation}</div>
+    <div style="font-size:20px;font-weight:800;color:${gngC}">${esc(gng.recommendation)}</div>
   </div>
 </div>
-${gng.conditions?.length?`<div style="padding:10px 14px;background:#FFFBEB;border-left:3px solid #F59E0B;border-radius:0 6px 6px 0;margin-bottom:6px"><div style="font-family:'IBM Plex Mono',monospace;font-size:7.5px;color:#D97706;margin-bottom:4px;letter-spacing:1px">CONDITIONS</div>${gng.conditions.map(c=>`<div style="font-size:11px;color:#374151;margin-bottom:2px">• ${c}</div>`).join("")}</div>`:""}
-${gng.critical_path?.length?`<div style="padding:10px 14px;background:#FFF5F2;border-left:3px solid ${C.FR};border-radius:0 6px 6px 0"><div style="font-family:'IBM Plex Mono',monospace;font-size:7.5px;color:${C.FR};margin-bottom:4px;letter-spacing:1px">CRITICAL PATH</div>${gng.critical_path.map(c=>`<div style="font-size:11px;color:#374151;margin-bottom:2px">→ ${c}</div>`).join("")}</div>`:""}
+${gng.conditions?.length?`<div style="padding:10px 14px;background:#FFFBEB;border-left:3px solid #F59E0B;border-radius:0 6px 6px 0;margin-bottom:6px"><div style="font-family:'IBM Plex Mono',monospace;font-size:7.5px;color:#D97706;margin-bottom:4px;letter-spacing:1px">CONDITIONS</div>${gng.conditions.map(c=>`<div style="font-size:11px;color:#374151;margin-bottom:2px">• ${esc(c)}</div>`).join("")}</div>`:""}
+${gng.critical_path?.length?`<div style="padding:10px 14px;background:#FFF5F2;border-left:3px solid ${C.FR};border-radius:0 6px 6px 0"><div style="font-family:'IBM Plex Mono',monospace;font-size:7.5px;color:${C.FR};margin-bottom:4px;letter-spacing:1px">CRITICAL PATH</div>${gng.critical_path.map(c=>`<div style="font-size:11px;color:#374151;margin-bottom:2px">→ ${esc(c)}</div>`).join("")}</div>`:""}
 </section>` : ""}
 
 <!-- SECTION 1: REGULATORY FLAGS -->
@@ -307,8 +311,8 @@ ${secH("Packaging Regulatory Landscape","#7C3AED")}
 <table style="${tbl}"><colgroup><col style="width:28%"><col style="width:72%"></colgroup>
 <tbody>
 ${cats.map((r,i)=>`<tr style="background:${i%2===0?"#fff":"#F9FAFB"}">
-  <td style="${tdS};border-left:3px solid ${r.c}"><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;color:${r.c}">${r.l}</span></td>
-  <td style="${tdS}">${(pkg[r.k]||[]).map(i=>`<div style="font-size:11px;color:#374151;margin-bottom:2px">• ${i}</div>`).join("")}</td>
+  <td style="${tdS};border-left:3px solid ${r.c}"><span style="font-family:'IBM Plex Mono',monospace;font-size:9px;font-weight:700;color:${r.c}">${esc(r.l)}</span></td>
+  <td style="${tdS}">${(pkg[r.k]||[]).map(item=>`<div style="font-size:11px;color:#374151;margin-bottom:2px">• ${esc(item)}</div>`).join("")}</td>
 </tr>`).join("")}
 </tbody>
 </table>
@@ -333,12 +337,12 @@ ${secH("Section 2 — ISO 14001:2026 Environmental Management Pre-Screen",C.FE)}
 </tr></thead>
 <tbody>
 ${(result.ems_aspects||[]).map((a,i)=>`<tr style="background:${i%2===0?"#fff":"#F9FAFB"}">
-  <td style="${tdS};font-weight:600;color:#1F2A44;font-size:10.5px">${a.material||""}</td>
-  <td style="${tdS};font-size:10.5px">${a.aspect||""}</td>
-  <td style="${tdS};font-size:10px;color:#6B7280">${a.impact||""}</td>
-  <td style="${tdS};font-family:'IBM Plex Mono',monospace;font-size:8.5px;color:#6B7280">${a.lifecycle_stages||""}</td>
+  <td style="${tdS};font-weight:600;color:#1F2A44;font-size:10.5px">${esc(a.material)}</td>
+  <td style="${tdS};font-size:10.5px">${esc(a.aspect)}</td>
+  <td style="${tdS};font-size:10px;color:#6B7280">${esc(a.impact)}</td>
+  <td style="${tdS};font-family:'IBM Plex Mono',monospace;font-size:8.5px;color:#6B7280">${esc(a.lifecycle_stages)}</td>
   <td style="${tdS}">${sevBadge(a.significance)}</td>
-  <td style="${tdS};font-size:10px">${a.obligation||""}</td>
+  <td style="${tdS};font-size:10px">${esc(a.obligation)}</td>
 </tr>`).join("")}
 </tbody>
 </table>
@@ -358,10 +362,10 @@ ${(result.ems_ro||[]).length ? `
 </tr></thead>
 <tbody>
 ${(result.ems_ro||[]).map((r,i)=>`<tr style="background:${i%2===0?"#fff":"#F9FAFB"}">
-  <td style="${tdS};font-weight:700;font-size:10px;color:${r.type==="Opportunity"?C.FE:C.FR}">${r.type||""}</td>
-  <td style="${tdS};font-size:10.5px">${r.description||""}</td>
-  <td style="${tdS};font-family:'IBM Plex Mono',monospace;font-size:8.5px;color:#6B7280">${r.clause||""}</td>
-  <td style="${tdS};font-size:10.5px">${r.action||""}</td>
+  <td style="${tdS};font-weight:700;font-size:10px;color:${r.type==="Opportunity"?C.FE:C.FR}">${esc(r.type)}</td>
+  <td style="${tdS};font-size:10.5px">${esc(r.description)}</td>
+  <td style="${tdS};font-family:'IBM Plex Mono',monospace;font-size:8.5px;color:#6B7280">${esc(r.clause)}</td>
+  <td style="${tdS};font-size:10.5px">${esc(r.action)}</td>
 </tr>`).join("")}
 </tbody>
 </table>
@@ -381,10 +385,10 @@ ${(result.ems_change_flags||[]).length ? `
 </tr></thead>
 <tbody>
 ${(result.ems_change_flags||[]).map((r,i)=>`<tr style="background:${i%2===0?"#fff":"#F9FAFB"}">
-  <td style="${tdS};font-weight:600;color:#1F2A44;font-size:10.5px">${r.change||""}</td>
-  <td style="${tdS};font-size:10.5px;color:#374151">${r.why||""}</td>
-  <td style="${tdS};font-size:10px;color:#6B7280">${r.owner||""}</td>
-  <td style="${tdS};font-weight:700;font-size:10px;color:${C.FE}">${r.requirement||""}</td>
+  <td style="${tdS};font-weight:600;color:#1F2A44;font-size:10.5px">${esc(r.change)}</td>
+  <td style="${tdS};font-size:10.5px;color:#374151">${esc(r.why)}</td>
+  <td style="${tdS};font-size:10px;color:#6B7280">${esc(r.owner)}</td>
+  <td style="${tdS};font-weight:700;font-size:10px;color:${C.FE}">${esc(r.requirement)}</td>
 </tr>`).join("")}
 </tbody>
 </table>
@@ -404,10 +408,10 @@ ${secH("Section 3 — ISO 9001:2015 Quality Management System Gaps",C.FQ)}
 </tr></thead>
 <tbody>
 ${(result.qms_gaps||[]).map((g,i)=>`<tr style="background:${i%2===0?"#fff":"#F9FAFB"}">
-  <td style="${tdS};font-weight:600;color:#1F2A44;font-size:10.5px">${g.area||""}</td>
-  <td style="${tdS};font-family:'IBM Plex Mono',monospace;font-size:8.5px;color:#6B7280">${g.clause||""}</td>
-  <td style="${tdS};font-size:10.5px;color:#374151">${g.gap||""}</td>
-  <td style="${tdS};font-weight:700;font-size:10px;color:${C.FQ}">${g.action||""}</td>
+  <td style="${tdS};font-weight:600;color:#1F2A44;font-size:10.5px">${esc(g.area)}</td>
+  <td style="${tdS};font-family:'IBM Plex Mono',monospace;font-size:8.5px;color:#6B7280">${esc(g.clause)}</td>
+  <td style="${tdS};font-size:10.5px;color:#374151">${esc(g.gap)}</td>
+  <td style="${tdS};font-weight:700;font-size:10px;color:${C.FQ}">${esc(g.action)}</td>
 </tr>`).join("")}
 </tbody>
 </table>
@@ -428,11 +432,11 @@ ${secH("Section 4 — ISO 45001:2018 Preliminary Hazard Identification",C.FO)}
 </tr></thead>
 <tbody>
 ${(result.ohs_hazards||[]).map((h,i)=>`<tr style="background:${i%2===0?"#fff":"#F9FAFB"}">
-  <td style="${tdS};font-weight:600;color:#1F2A44;font-size:10.5px">${h.source||""}</td>
-  <td style="${tdS};font-size:10.5px;color:#374151">${h.hazard_type||""}</td>
-  <td style="${tdS};font-size:10px;color:#6B7280">${h.exposed||""}</td>
-  <td style="${tdS};font-size:10px;color:#374151">${h.classification||""}</td>
-  <td style="${tdS};font-weight:700;font-size:10px;color:${C.FO}">${h.control||""}</td>
+  <td style="${tdS};font-weight:600;color:#1F2A44;font-size:10.5px">${esc(h.source)}</td>
+  <td style="${tdS};font-size:10.5px;color:#374151">${esc(h.hazard_type)}</td>
+  <td style="${tdS};font-size:10px;color:#6B7280">${esc(h.exposed)}</td>
+  <td style="${tdS};font-size:10px;color:#374151">${esc(h.classification)}</td>
+  <td style="${tdS};font-weight:700;font-size:10px;color:${C.FO}">${esc(h.control)}</td>
 </tr>`).join("")}
 </tbody>
 </table>
@@ -443,15 +447,15 @@ ${(result.bom_compliance||[]).length ? `
 <section>
 ${secH("BOM Compliance Review",C.FR)}
 ${result.bom_compliance.map(b=>{
-  const sc = sevCol(b.severity), sbg = sevBg(b.severity);
+  const sc = sevCol(b.severity);
   return `<div style="border:1px solid #E2E8F0;border-left:3px solid ${sc};border-radius:5px;margin-bottom:8px;padding:12px">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-      <span style="font-weight:700;font-size:12px;color:#1F2A44">${b.material||""}</span>
+      <span style="font-weight:700;font-size:12px;color:#1F2A44">${esc(b.material)}</span>
       ${sevBadge(b.severity)}
     </div>
-    ${b.concerns?.length?`<div style="margin-bottom:5px">${b.concerns.map(c=>`<div style="font-size:11px;color:#374151;margin-bottom:2px">• ${c}</div>`).join("")}</div>`:""}
-    ${b.recommendation?`<div style="font-size:10.5px;font-weight:700;color:${C.FR}">→ ${b.recommendation}</div>`:""}
-    ${b.alternative?`<div style="font-size:10px;color:#059669;font-weight:600;margin-top:3px">💡 ${b.alternative}</div>`:""}
+    ${b.concerns?.length?`<div style="margin-bottom:5px">${b.concerns.map(c=>`<div style="font-size:11px;color:#374151;margin-bottom:2px">• ${esc(c)}</div>`).join("")}</div>`:""}
+    ${b.recommendation?`<div style="font-size:10.5px;font-weight:700;color:${C.FR}">→ ${esc(b.recommendation)}</div>`:""}
+    ${b.alternative?`<div style="font-size:10px;color:#059669;font-weight:600;margin-top:3px">💡 ${esc(b.alternative)}</div>`:""}
   </div>`;
 }).join("")}
 </section>` : ""}
@@ -470,11 +474,11 @@ ${secH("Product Compliance Checklist",C.FR)}
 <tbody>
 ${result.product_checklist.map((r,i)=>`<tr style="background:${i%2===0?"#fff":"#F9FAFB"}">
   <td style="${tdS}">${statusBadge(r.status)}</td>
-  <td style="${tdS};font-weight:600;color:#1F2A44;font-size:10.5px">${r.regulation||""}</td>
-  <td style="${tdS}"><span style="font-size:8px;background:#F5F0E8;color:#6B7A99;border-radius:3px;padding:1px 5px;font-family:'IBM Plex Mono',monospace;white-space:nowrap">${r.area||""}</span></td>
-  <td style="${tdS};font-size:10px;color:#94A3B8">${(r.markets||[]).join(", ")}</td>
-  <td style="${tdS};font-size:10.5px;color:#374151">${r.finding||""}</td>
-  <td style="${tdS};font-size:10.5px;font-weight:600;color:#374151">${r.action||"—"}</td>
+  <td style="${tdS};font-weight:600;color:#1F2A44;font-size:10.5px">${esc(r.regulation)}</td>
+  <td style="${tdS}"><span style="font-size:8px;background:#F5F0E8;color:#6B7A99;border-radius:3px;padding:1px 5px;font-family:'IBM Plex Mono',monospace;white-space:nowrap">${esc(r.area)}</span></td>
+  <td style="${tdS};font-size:10px;color:#94A3B8">${esc((r.markets||[]).join(", "))}</td>
+  <td style="${tdS};font-size:10.5px;color:#374151">${esc(r.finding)}</td>
+  <td style="${tdS};font-size:10.5px;font-weight:600;color:#374151">${r.action?esc(r.action):"—"}</td>
 </tr>`).join("")}
 </tbody>
 </table>
@@ -495,12 +499,12 @@ ${secH("Packaging Compliance Checklist","#7C3AED")}
 <tbody>
 ${result.packaging_checklist.map((r,i)=>`<tr style="background:${i%2===0?"#fff":"#F9FAFB"}">
   <td style="${tdS}">${statusBadge(r.status)}</td>
-  <td style="${tdS};font-weight:600;color:#1F2A44;font-size:10.5px">${r.requirement||""}</td>
-  <td style="${tdS}"><span style="font-size:8px;background:#EDE9FE;color:#7C3AED;border-radius:3px;padding:1px 5px;font-family:'IBM Plex Mono',monospace;white-space:nowrap">${r.type||""}</span></td>
-  <td style="${tdS};font-size:10px;color:#94A3B8">${(r.markets||[]).join(", ")}</td>
-  <td style="${tdS};font-size:10.5px;color:#374151">${r.detail||""}</td>
-  <td style="${tdS};font-size:10.5px;font-weight:600;color:#7C3AED">${r.action||"—"}</td>
-  <td style="${tdS};font-size:9.5px;font-family:'IBM Plex Mono',monospace;color:#D97706;white-space:nowrap">${r.deadline||""}</td>
+  <td style="${tdS};font-weight:600;color:#1F2A44;font-size:10.5px">${esc(r.requirement)}</td>
+  <td style="${tdS}"><span style="font-size:8px;background:#EDE9FE;color:#7C3AED;border-radius:3px;padding:1px 5px;font-family:'IBM Plex Mono',monospace;white-space:nowrap">${esc(r.type)}</span></td>
+  <td style="${tdS};font-size:10px;color:#94A3B8">${esc((r.markets||[]).join(", "))}</td>
+  <td style="${tdS};font-size:10.5px;color:#374151">${esc(r.detail)}</td>
+  <td style="${tdS};font-size:10.5px;font-weight:600;color:#7C3AED">${r.action?esc(r.action):"—"}</td>
+  <td style="${tdS};font-size:9.5px;font-family:'IBM Plex Mono',monospace;color:#D97706;white-space:nowrap">${esc(r.deadline)}</td>
 </tr>`).join("")}
 </tbody>
 </table>
@@ -523,12 +527,12 @@ ${secH("Market Readiness Overview — Four Dimensions",C.navy)}
 </tr></thead>
 <tbody>
 ${Object.entries(result.market_readiness||{}).map(([market,data],i)=>`<tr style="background:${i%2===0?"#fff":"#F9FAFB"}">
-  <td style="${tdS};font-weight:600;font-size:10.5px;color:#1F2A44">${market}</td>
+  <td style="${tdS};font-weight:600;font-size:10.5px;color:#1F2A44">${esc(market)}</td>
   ${mrCell(data.reg_product)}
   ${mrCell(data.reg_packaging)}
   ${mrCell(data.qms)}
   ${mrCell(data.ohs)}
-  <td style="${tdS};font-size:10px;color:#374151">${data.notes||""}</td>
+  <td style="${tdS};font-size:10px;color:#374151">${esc(data.notes)}</td>
 </tr>`).join("")}
 </tbody>
 </table>
@@ -550,18 +554,18 @@ ${secH("Integrated Action Plan — All Frameworks",C.FR)}
 </tr></thead>
 <tbody>
 ${[...result.actions].sort((a,b)=>a.priority-b.priority).map((a,i)=>`<tr style="background:${i%2===0?"#fff":"#F9FAFB"}">
-  <td style="${tdS};text-align:center;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:13px;color:${C.FR}">${a.priority}</td>
-  <td style="${tdS}"><div style="font-weight:700;font-size:11px;color:#1F2A44;margin-bottom:3px">${a.action||""}</div><div>${(a.fws||[]).map(fwTag).join("")}</div></td>
-  <td style="${tdS};font-size:10px;color:#6B7280">${a.owner||""}</td>
-  <td style="${tdS};font-weight:700;font-size:10px;color:#3B82F6">${a.timeline||""}</td>
-  <td style="${tdS};font-size:10.5px;color:#374151">${a.detail||""}</td>
+  <td style="${tdS};text-align:center;font-family:'IBM Plex Mono',monospace;font-weight:700;font-size:13px;color:${C.FR}">${esc(a.priority)}</td>
+  <td style="${tdS}"><div style="font-weight:700;font-size:11px;color:#1F2A44;margin-bottom:3px">${esc(a.action)}</div><div>${(a.fws||[]).map(fwTag).join("")}</div></td>
+  <td style="${tdS};font-size:10px;color:#6B7280">${esc(a.owner)}</td>
+  <td style="${tdS};font-weight:700;font-size:10px;color:#3B82F6">${esc(a.timeline)}</td>
+  <td style="${tdS};font-size:10.5px;color:#374151">${esc(a.detail)}</td>
 </tr>`).join("")}
 </tbody>
 </table>
 </section>` : ""}
 
 <!-- SOURCES -->
-${(result.sources_searched||[]).length?`<div style="margin-top:16px;display:flex;flex-wrap:wrap;gap:4px;align-items:center"><span style="font-size:8px;color:#94A3B8;font-family:'IBM Plex Mono',monospace;margin-right:4px">SOURCES SEARCHED:</span>${result.sources_searched.slice(0,8).map(s=>`<span style="font-size:8px;background:#F1F5F9;color:#475569;border-radius:3px;padding:1px 6px;font-family:'IBM Plex Mono',monospace">${s}</span>`).join("")}</div>`:""}
+${(result.sources_searched||[]).length?`<div style="margin-top:16px;display:flex;flex-wrap:wrap;gap:4px;align-items:center"><span style="font-size:8px;color:#94A3B8;font-family:'IBM Plex Mono',monospace;margin-right:4px">SOURCES SEARCHED:</span>${result.sources_searched.slice(0,8).map(s=>`<span style="font-size:8px;background:#F1F5F9;color:#475569;border-radius:3px;padding:1px 6px;font-family:'IBM Plex Mono',monospace">${esc(s)}</span>`).join("")}</div>`:""}
 
 <!-- FOOTER -->
 <div style="margin-top:40px;padding:16px 0;border-top:1px solid #E2E8F0;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
@@ -582,10 +586,32 @@ ${(result.sources_searched||[]).length?`<div style="margin-top:16px;display:flex
 
 /* ── Export helpers ──────────────────────────────────────────────────────── */
 function exportPDF(html) {
-  const blob = new Blob([html], {type: "text/html"});
+  const blob = new Blob([html], { type: "text/html" });
   const url  = URL.createObjectURL(blob);
   const w    = window.open(url, "_blank");
-  if (w) setTimeout(() => { w.print(); URL.revokeObjectURL(url); }, 900);
+  if (!w || w.closed || typeof w.closed === "undefined") {
+    // Popup blocked — fall back to a download.
+    URL.revokeObjectURL(url);
+    const a = document.createElement("a");
+    const blob2 = new Blob([html], { type: "text/html" });
+    a.href = URL.createObjectURL(blob2);
+    a.download = "STS_IMS_Report.html";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    alert("Pop-ups are blocked. Downloaded the report as HTML — open it and use Ctrl/Cmd+P to print to PDF.");
+    return;
+  }
+  // Give fonts and layout time to settle, then trigger print.
+  const printWhenReady = () => {
+    try { w.focus(); w.print(); } catch { /* ignore */ }
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  };
+  if (w.document.readyState === "complete") {
+    setTimeout(printWhenReady, 500);
+  } else {
+    w.addEventListener?.("load", () => setTimeout(printWhenReady, 500));
+    setTimeout(printWhenReady, 1500); // fallback
+  }
 }
 function exportCSV(result) {
   const rows = [["STS NPD IMS Compliance Report"],["Product:",result.productName||""],["Category:",result.category||""],["Overall Risk:",(result.overall_risk||"").toUpperCase()],[]];
@@ -648,50 +674,107 @@ export default function App() {
 
   const fileRef = useRef();
   const mainRef = useRef();
+  const dragDepth = useRef(0);
+  const abortRef = useRef(null);
 
   const filteredCtry = COUNTRIES.filter(c=>c.toLowerCase().includes(ctrySearch.toLowerCase()));
-  const toggleCtry   = c => setCountries(p=>p.includes(c)?p.filter(x=>x!==c):[...p,c]);
+  const toggleCtry = c => {
+    setCountries(p => p.includes(c) ? p.filter(x => x !== c) : [...p, c]);
+    if (error) setError(null);
+  };
   const toggleRegion = rg => {
     const rc = REGIONS[rg]||[];
     const allSel = rc.every(c=>countries.includes(c));
     setCountries(p=>allSel?p.filter(c=>!rc.includes(c)):[...new Set([...p,...rc])]);
   };
 
-  const handleDrop = useCallback(e=>{
-    e.preventDefault(); setDragging(false);
-    setFiles(p=>[...p,...Array.from(e.dataTransfer.files)]);
-  },[]);
+  // Reject files larger than ~3 MB so we stay under the 4 MB API body limit
+  // even after base64-ish text extraction.
+  const MAX_FILE_BYTES = 3 * 1024 * 1024;
+  const addFiles = useCallback(incoming => {
+    const arr = Array.from(incoming || []);
+    const tooBig = arr.filter(f => f.size > MAX_FILE_BYTES).map(f => f.name);
+    const ok = arr.filter(f => f.size <= MAX_FILE_BYTES);
+    if (tooBig.length) setError(`Skipped (over 3 MB): ${tooBig.join(", ")}`);
+    if (ok.length) setFiles(p => [...p, ...ok]);
+  }, []);
+
+  const handleDrop = useCallback(e => {
+    e.preventDefault();
+    dragDepth.current = 0;
+    setDragging(false);
+    addFiles(e.dataTransfer?.files);
+  }, [addFiles]);
+
+  const handleDragEnter = e => {
+    e.preventDefault();
+    dragDepth.current += 1;
+    setDragging(true);
+  };
+  const handleDragLeave = e => {
+    e.preventDefault();
+    dragDepth.current = Math.max(0, dragDepth.current - 1);
+    if (dragDepth.current === 0) setDragging(false);
+  };
+
+  const cancel = () => {
+    abortRef.current?.abort();
+  };
 
   const run = async () => {
-    if (!category||countries.length===0){setError("Please select a Product Category and at least one Target Market.");return;}
+    if (!category || countries.length === 0) {
+      setError("Select a Product Category and at least one Target Market before running.");
+      return;
+    }
     setError(null); setLoading(true); setResult(null); setHtml(null);
+    const controller = new AbortController();
+    abortRef.current = controller;
     try {
       setLoadMsg("📄 Reading uploaded documents...");
-      const fileContents = await Promise.all(files.map(async f=>({name:f.name,content:await extractText(f)})));
-      setLoadMsg(`🌐 Searching regulations for ${countries.length} markets...`);
-      await new Promise(r=>setTimeout(r,200));
+      const fileContents = await Promise.all(
+        files.map(async f => ({ name: f.name, content: await extractText(f) }))
+      );
+      setLoadMsg(`🌐 Searching regulations for ${countries.length} market${countries.length===1?"":"s"}...`);
+      await new Promise(r => setTimeout(r, 200));
       setLoadMsg("⚖️ Running IMS compliance analysis with live data...");
 
-      // Call our secure Vercel API route — API key never leaves the server
+      // Call our secure API route — API key never leaves the server.
       const apiRes = await fetch("/api/analyse", {
         method: "POST",
-        headers: {"Content-Type":"application/json"},
-        body: JSON.stringify({stage,productName,category,description,targetCountries:countries,materials,notes,fileContents}),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          stage, productName, category, description,
+          targetCountries: countries, materials, notes, fileContents,
+        }),
+        signal: controller.signal,
       });
 
       if (!apiRes.ok) {
-        const err = await apiRes.json();
-        throw new Error(err.error || `API error ${apiRes.status}`);
+        let msg = `API error ${apiRes.status}`;
+        try {
+          const err = await apiRes.json();
+          msg = err.error || err.detail || msg;
+        } catch {
+          const text = await apiRes.text().catch(() => "");
+          if (text) msg = text.slice(0, 300);
+        }
+        throw new Error(msg);
       }
 
       const parsed = await apiRes.json();
       const html   = buildHTMLReport(parsed, stage);
       setResult(parsed); setHtml(html); setViewMode("report");
-      setTimeout(()=>mainRef.current?.scrollIntoView({behavior:"smooth",block:"start"}),100);
-    } catch(e) {
-      setError(`Analysis error: ${e.message}`);
+      setTimeout(() => mainRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 100);
+    } catch (e) {
+      if (e?.name === "AbortError") {
+        setError("Analysis cancelled.");
+      } else {
+        setError(`Analysis error: ${e.message}`);
+      }
     } finally {
-      setLoading(false); setLoadMsg("");
+      abortRef.current = null;
+      setLoading(false);
+      setLoadMsg("");
     }
   };
 
@@ -710,10 +793,19 @@ export default function App() {
         .inp{width:100%;background:#fff;border:1.5px solid #E2E8F0;border-radius:7px;padding:9px 12px;color:#0D1520;font-size:13px;outline:none;transition:border-color 0.15s}
         .inp:focus{border-color:#E8512A}
         .ctry-row:hover{background:#F5F0E8!important}
+        .ctry-row:focus-visible{outline:2px solid #E8512A;outline-offset:-2px}
         .run-btn:hover:not(:disabled){transform:translateY(-1px);box-shadow:0 6px 22px rgba(232,81,42,0.35)!important}
         .exp-btn:hover{background:#253354!important}
         .stg-btn:hover{opacity:0.85}
         .tab-btn:hover{background:#EDE5D8!important}
+        button:focus-visible,a:focus-visible{outline:2px solid #E8512A;outline-offset:2px}
+        .form-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+        @media (max-width:1100px){
+          .form-grid{grid-template-columns:1fr 1fr}
+        }
+        @media (max-width:720px){
+          .form-grid{grid-template-columns:1fr}
+        }
       `}</style>
 
       {/* ── HEADER ── */}
@@ -752,7 +844,7 @@ export default function App() {
             </div>
           </div>
 
-          <div style={{padding:"18px 20px",display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:14}}>
+          <div className="form-grid" style={{padding:"18px 20px"}}>
 
             {/* Col 1 */}
             <div style={{display:"flex",flexDirection:"column",gap:12}}>
@@ -761,18 +853,24 @@ export default function App() {
                   {stage==="brief"?"UPLOAD BRIEF (PDF / DOCX / TXT)":"UPLOAD BOM & DESIGN DOCS"}
                 </label>
                 <div
-                  onDragOver={e=>{e.preventDefault();setDragging(true)}}
-                  onDragLeave={()=>setDragging(false)}
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Upload brief or supporting documents"
+                  onDragOver={e=>{e.preventDefault()}}
+                  onDragEnter={handleDragEnter}
+                  onDragLeave={handleDragLeave}
                   onDrop={handleDrop}
                   onClick={()=>fileRef.current?.click()}
+                  onKeyDown={e=>{ if(e.key==="Enter"||e.key===" "){ e.preventDefault(); fileRef.current?.click(); } }}
                   style={{border:`2px dashed ${dragging?C.coral:C.borderD}`,borderRadius:8,padding:"14px 12px",cursor:"pointer",textAlign:"center",background:dragging?C.coral+"08":C.sandL,transition:"all 0.15s"}}
                 >
                   <input ref={fileRef} type="file" multiple accept=".pdf,.docx,.txt,.md,.csv" style={{display:"none"}}
-                    onChange={e=>setFiles(p=>[...p,...Array.from(e.target.files)])} />
+                    onChange={e=>{ addFiles(e.target.files); e.target.value=""; }} />
                   <div style={{fontSize:20,marginBottom:3}}>📎</div>
                   <div style={{fontSize:11,color:C.slate,lineHeight:1.4}}>
                     Drop files or <span style={{color:C.coral,fontWeight:700}}>browse</span>
-                    <br/><span style={{fontSize:9,color:C.slateL}}>PDF, DOCX, TXT accepted</span>
+                    <br/><span style={{fontSize:9,color:C.slateL}}>PDF · DOCX · TXT · MD · CSV — max 3 MB each</span>
+                    <br/><span style={{fontSize:9,color:C.slateL,fontStyle:"italic"}}>PDFs are read as plain text — for best results upload DOCX or TXT</span>
                   </div>
                 </div>
                 {files.length>0&&(
@@ -792,7 +890,7 @@ export default function App() {
               </div>
               <div>
                 <label style={{display:"block",fontSize:10,fontFamily:"'IBM Plex Mono',monospace",color:C.slate,marginBottom:5,letterSpacing:"0.08em"}}>PRODUCT CATEGORY *</label>
-                <select className="inp" value={category} onChange={e=>setCategory(e.target.value)} style={{color:category?C.ink:C.slateL}}>
+                <select className="inp" value={category} onChange={e=>{setCategory(e.target.value); if(error) setError(null);}} style={{color:category?C.ink:C.slateL}}>
                   <option value="">Select category...</option>
                   {CATEGORIES.map(c=><option key={c.id} value={c.id}>{c.icon} {c.label}</option>)}
                 </select>
@@ -833,16 +931,28 @@ export default function App() {
                 })}
               </div>
               <input className="inp" value={ctrySearch} onChange={e=>setCtrySearch(e.target.value)} placeholder="Search countries..." style={{fontSize:11}} />
-              <div style={{flex:1,minHeight:160,maxHeight:200,overflowY:"auto",border:`1px solid ${C.border}`,borderRadius:8}}>
-                {filteredCtry.map(c=>(
-                  <div key={c} className="ctry-row" onClick={()=>toggleCtry(c)}
-                    style={{padding:"5px 10px",cursor:"pointer",fontSize:11.5,display:"flex",alignItems:"center",gap:7,borderBottom:`1px solid ${C.sandD}`,background:countries.includes(c)?C.sandD:"transparent",transition:"background 0.08s"}}>
-                    <span style={{width:13,height:13,border:`1.5px solid ${countries.includes(c)?C.coral:C.borderD}`,borderRadius:3,background:countries.includes(c)?C.coral:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,color:"#fff",flexShrink:0}}>
-                      {countries.includes(c)?"✓":""}
-                    </span>
-                    <span style={{color:countries.includes(c)?C.ink:C.slate}}>{c}</span>
+              <div role="listbox" aria-multiselectable="true" aria-label="Target markets" style={{flex:1,minHeight:160,maxHeight:200,overflowY:"auto",border:`1px solid ${C.border}`,borderRadius:8}}>
+                {filteredCtry.length === 0 ? (
+                  <div style={{padding:"18px 12px",textAlign:"center",fontSize:11,color:C.slateL,fontFamily:"'IBM Plex Mono',monospace"}}>
+                    No markets match &ldquo;{ctrySearch}&rdquo;
                   </div>
-                ))}
+                ) : filteredCtry.map(c => {
+                  const sel = countries.includes(c);
+                  return (
+                    <div key={c} className="ctry-row"
+                      role="option"
+                      aria-selected={sel}
+                      tabIndex={0}
+                      onClick={() => toggleCtry(c)}
+                      onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleCtry(c); } }}
+                      style={{padding:"5px 10px",cursor:"pointer",fontSize:11.5,display:"flex",alignItems:"center",gap:7,borderBottom:`1px solid ${C.sandD}`,background:sel?C.sandD:"transparent",transition:"background 0.08s"}}>
+                      <span aria-hidden="true" style={{width:13,height:13,border:`1.5px solid ${sel?C.coral:C.borderD}`,borderRadius:3,background:sel?C.coral:"transparent",display:"flex",alignItems:"center",justifyContent:"center",fontSize:8,color:"#fff",flexShrink:0}}>
+                        {sel?"✓":""}
+                      </span>
+                      <span style={{color:sel?C.ink:C.slate}}>{c}</span>
+                    </div>
+                  );
+                })}
               </div>
               {countries.length>0&&(
                 <div style={{display:"flex",flexWrap:"wrap",gap:3}}>
@@ -853,16 +963,29 @@ export default function App() {
                 </div>
               )}
 
-              {error&&<div style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:6,padding:"8px 11px",fontSize:11.5,color:"#DC2626"}}>{error}</div>}
+              {error&&<div role="alert" style={{background:"#FEF2F2",border:"1px solid #FECACA",borderRadius:6,padding:"8px 11px",fontSize:11.5,color:"#DC2626"}}>{error}</div>}
 
-              <button className="run-btn" onClick={run} disabled={loading} style={{
-                width:"100%",padding:"12px",borderRadius:8,border:"none",cursor:loading?"not-allowed":"pointer",
-                background:loading?C.sandD:`linear-gradient(135deg,${C.coral},${C.coralL})`,
-                color:loading?C.slate:"#fff",fontFamily:"'IBM Plex Mono',monospace",fontWeight:700,fontSize:11,
-                letterSpacing:"0.07em",transition:"all 0.18s",boxShadow:loading?"none":"0 3px 12px rgba(232,81,42,0.3)",
-              }}>
-                {loading?(loadMsg||"ANALYSING..."):(stage==="brief"?"📋 RUN IMS PRE-SCREEN":"🔬 RUN BOM REVIEW")}
+              <button
+                className="run-btn"
+                onClick={run}
+                disabled={loading}
+                aria-busy={loading}
+                aria-label={loading ? "Analysing — please wait" : (stage==="brief" ? "Run IMS Pre-Screen" : "Run BOM Review")}
+                style={{
+                  width:"100%",padding:"12px",borderRadius:8,border:"none",cursor:loading?"not-allowed":"pointer",
+                  background:loading?C.sandD:`linear-gradient(135deg,${C.coral},${C.coralL})`,
+                  color:loading?C.slate:"#fff",fontFamily:"'IBM Plex Mono',monospace",fontWeight:700,fontSize:11,
+                  letterSpacing:"0.07em",transition:"all 0.18s",boxShadow:loading?"none":"0 3px 12px rgba(232,81,42,0.3)",
+                  whiteSpace:"nowrap",overflow:"hidden",textOverflow:"ellipsis",
+                }}
+              >
+                {loading?"⏳ ANALYSING…":(stage==="brief"?"📋 RUN IMS PRE-SCREEN":"🔬 RUN BOM REVIEW")}
               </button>
+              {loading && (
+                <button onClick={cancel} style={{padding:"6px 10px",background:"transparent",border:`1px solid ${C.borderD}`,borderRadius:6,color:C.slate,cursor:"pointer",fontSize:10,fontFamily:"'IBM Plex Mono',monospace",letterSpacing:"0.05em"}}>
+                  ✕ CANCEL
+                </button>
+              )}
               <div style={{textAlign:"center",fontSize:8,color:C.slateL,fontFamily:"'IBM Plex Mono',monospace",lineHeight:1.6}}>
                 🌐 LIVE WEB SEARCH · 75 JURISDICTIONS<br/>REG + ISO 14001:2026 + ISO 9001 + ISO 45001<br/>🔒 NO DATA STORED · NOT USED FOR TRAINING
               </div>
@@ -960,7 +1083,19 @@ export default function App() {
                 <div style={{padding:16,background:C.navyD}}>
                   <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:8}}>
                     <span style={{fontFamily:"'IBM Plex Mono',monospace",fontSize:9.5,color:C.coral,letterSpacing:"0.1em"}}>HTML SOURCE</span>
-                    <button onClick={()=>navigator.clipboard?.writeText(htmlReport)} style={{padding:"4px 12px",background:C.coral,border:"none",borderRadius:5,color:"#fff",cursor:"pointer",fontSize:9.5,fontFamily:"'IBM Plex Mono',monospace",fontWeight:700}}>📋 COPY</button>
+                    <button
+                      onClick={async () => {
+                        try {
+                          if (!navigator.clipboard) throw new Error("Clipboard not available");
+                          await navigator.clipboard.writeText(htmlReport);
+                          setError(null);
+                          alert("HTML copied to clipboard.");
+                        } catch {
+                          alert("Couldn't copy automatically — select the text below and copy manually (Ctrl/Cmd+C).");
+                        }
+                      }}
+                      style={{padding:"4px 12px",background:C.coral,border:"none",borderRadius:5,color:"#fff",cursor:"pointer",fontSize:9.5,fontFamily:"'IBM Plex Mono',monospace",fontWeight:700}}
+                    >📋 COPY</button>
                   </div>
                   <pre style={{background:C.navyM,borderRadius:8,padding:14,overflowX:"auto",fontSize:9,color:C.slateXL,fontFamily:"'IBM Plex Mono',monospace",lineHeight:1.6,maxHeight:"75vh",overflowY:"auto"}}>
                     {htmlReport}

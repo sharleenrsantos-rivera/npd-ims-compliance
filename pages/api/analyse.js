@@ -13,7 +13,9 @@ export default async function handler(req, res) {
 
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {
-    return res.status(500).json({ error: "API key not configured. Set ANTHROPIC_API_KEY in Vercel environment variables." });
+    return res.status(500).json({
+      error: "ANTHROPIC_API_KEY is not configured. Add it to .env.local for local dev, or set it as an environment variable in Vercel.",
+    });
   }
 
   const { stage, productName, category, description, targetCountries, materials, notes, fileContents } = req.body;
@@ -125,6 +127,12 @@ Return JSON exactly:
   "sources_searched": [""]
 }`;
 
+  // Abort the upstream call if it doesn't complete within 290s — Vercel Pro
+  // function timeout is 300s, hobby is 60s. Leave headroom either way.
+  const controller = new AbortController();
+  const timeoutMs = Number(process.env.ANTHROPIC_TIMEOUT_MS) || 290_000;
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+
   try {
     const anthropicRes = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
@@ -135,17 +143,28 @@ Return JSON exactly:
         "anthropic-beta": "web-search-2025-03-05",
       },
       body: JSON.stringify({
-        model: "claude-opus-4-5",
-        max_tokens: 8192,
+        model: process.env.ANTHROPIC_MODEL || "claude-opus-4-5",
+        max_tokens: 16384,
         system: systemPrompt,
         tools: [{ type: "web_search_20250305", name: "web_search" }],
         messages: [{ role: "user", content: isBrief ? briefPrompt : protoPrompt }],
       }),
+      signal: controller.signal,
     });
 
     if (!anthropicRes.ok) {
-      const errText = await anthropicRes.text();
-      return res.status(502).json({ error: `Anthropic API error: ${anthropicRes.status}`, detail: errText });
+      const errText = await anthropicRes.text().catch(() => "");
+      let detail = errText;
+      try {
+        const j = JSON.parse(errText);
+        detail = j?.error?.message || errText;
+      } catch {
+        /* not JSON — keep raw text */
+      }
+      return res.status(502).json({
+        error: `Anthropic API error (${anthropicRes.status})`,
+        detail: detail.slice(0, 500),
+      });
     }
 
     const data = await anthropicRes.json();
@@ -177,9 +196,20 @@ Return JSON exactly:
     return res.status(200).json(parsed);
   } catch (err) {
     console.error("API route error:", err);
-    return res.status(500).json({ error: err.message });
+    if (err?.name === "AbortError") {
+      return res.status(504).json({
+        error: "The compliance analysis took too long and was cancelled. Try fewer markets or rerun.",
+      });
+    }
+    return res.status(500).json({ error: err.message || "Unknown server error" });
+  } finally {
+    clearTimeout(timer);
   }
 }
+
+// Vercel function configuration. Pro plan can extend maxDuration up to 300.
+// On Hobby this is clamped to 60 — long runs may still time out.
+export const maxDuration = 300;
 
 export const config = {
   api: {
